@@ -1,0 +1,240 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+:root {
+  --canvas-bg: #EAEAE6;
+  --grid-dots: #BEBEB6;
+  --card-bg: #FFFFFF;
+  --primary-text: #292929;
+  --secondary-text: #777777;
+  --borders: #E5E5E0;
+  --toolbar-bg: #FAFAF8;
+  --active-state: #E9E9E3;
+  --hover-state: #F0F0EB;
+  --accent-color: #8A8178;
+  --connector-lines: #454545;
+  --completed-task: #747A65;
+
+  --background: #EAEAE6;
+  --foreground: #292929;
+
+  /* High-contrast dark charcoal cursors with white outlines for visibility against white canvas */
+  --cursor-default: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M4.5 3.5l11.5 11.5-5.5 1-2.5 5.5-3.5-18z' fill='%23292929' stroke='%23FFFFFF' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 4 3, default;
+  --cursor-grab: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%23292929' stroke='%23FFFFFF' stroke-width='1.2' stroke-linejoin='round'%3E%3Cpath d='M10 3a1.5 1.5 0 0 0-3 0v8.5a.5.5 0 0 1-1 0V5.5a1.5 1.5 0 0 0-3 0v8a7 7 0 0 0 14 0V8.5a1.5 1.5 0 0 0-3 0V11a.5.5 0 0 1-1 0V4.5a1.5 1.5 0 0 0-3 0V11a.5.5 0 0 1-1 0V3z'/%3E%3C/svg%3E") 10 10, grab;
+  --cursor-grabbing: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%23292929' stroke='%23FFFFFF' stroke-width='1.2' stroke-linejoin='round'%3E%3Cpath d='M8 7a2 2 0 0 1 4 0v3a2 2 0 0 1 4 0v2a2 2 0 0 1 4 0v2c0 3.9-3.1 7-7 7s-7-3.1-7-7V9a2 2 0 0 1 2-2z'/%3E%3C/svg%3E") 10 10, grabbing;
+  --cursor-crosshair: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='2' fill='%23292929' stroke='%23FFFFFF' stroke-width='0.8'/%3E%3Cline x1='12' y1='2' x2='12' y2='8' stroke='%23292929' stroke-width='1.8' stroke-linecap='round'/%3E%3Cline x1='12' y1='16' x2='12' y2='22' stroke='%23292929' stroke-width='1.8' stroke-linecap='round'/%3E%3Cline x1='2' y1='12' x2='8' y2='12' stroke='%23292929' stroke-width='1.8' stroke-linecap='round'/%3E%3Cline x1='16' y1='12' x2='22' y2='12' stroke='%23292929' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") 12 12, crosshair;
+  --cursor-pen: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='3' fill='%23292929' stroke='%23FFFFFF' stroke-width='1'/%3E%3Ccircle cx='12' cy='12' r='7' fill='none' stroke='%23292929' stroke-width='1.2' stroke-dasharray='2 2'/%3E%3C/svg%3E") 12 12, crosshair;
+  --cursor-eraser: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect x='5' y='7' width='14' height='10' rx='2' transform='rotate(-30 12 12)' fill='%23FFFFFF' stroke='%23292929' stroke-width='1.8'/%3E%3Cline x1='10' y1='7' x2='6' y2='14' stroke='%238A4A4A' stroke-width='2'/%3E%3C/svg%3E") 12 12, cell;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background-color: #E9E9E3;
+  color: #292929;
+}
+
+body {
+  background-color: var(--canvas-bg);
+  color: var(--primary-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  cursor: var(--cursor-default);
+}
+
+/* Custom scrollbar in neutral tones */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #DEDEDA;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C4C4BD;
+}
+
+/* Override React Flow styles to match Milanote aesthetics */
+.react-flow {
+  background-color: var(--canvas-bg) !important;
+}
+
+.react-flow__pane {
+  cursor: var(--cursor-default) !important;
+}
+.react-flow__pane.dragging,
+.react-flow__pane:active {
+  cursor: var(--cursor-grabbing) !important;
+}
+
+/* Tool-specific cursor overrides */
+.canvas-tool-select .react-flow__pane {
+  cursor: var(--cursor-default) !important;
+}
+.canvas-tool-select .react-flow__pane:active {
+  cursor: var(--cursor-grabbing) !important;
+}
+
+.canvas-tool-line .react-flow__pane,
+.canvas-tool-line .react-flow__pane:active {
+  cursor: var(--cursor-crosshair) !important;
+}
+
+.canvas-tool-draw .react-flow__pane,
+.canvas-tool-draw .react-flow__pane:active {
+  cursor: var(--cursor-pen) !important;
+}
+
+.canvas-tool-eraser .react-flow__pane,
+.canvas-tool-eraser .react-flow__pane:active {
+  cursor: var(--cursor-eraser) !important;
+}
+
+.react-flow__edge-path {
+  stroke: var(--connector-lines) !important;
+  stroke-width: 1.5px !important;
+}
+
+.react-flow__connection-path {
+  stroke: var(--connector-lines) !important;
+  stroke-width: 1.5px !important;
+  stroke-dasharray: 4, 4;
+}
+
+/* Handles styling: subtle, neutral */
+.react-flow__handle {
+  width: 10px !important;
+  height: 10px !important;
+  background-color: #FFFFFF !important;
+  border: 1.5px solid var(--connector-lines) !important;
+  border-radius: 50% !important;
+  transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  z-index: 10;
+  cursor: var(--cursor-crosshair) !important;
+}
+
+/* Expanded invisible hit-target for effortless grabbing */
+.react-flow__handle::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  cursor: var(--cursor-crosshair) !important;
+}
+
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle {
+  opacity: 0.9;
+}
+
+.react-flow__handle:hover {
+  opacity: 1 !important;
+  transform: scale(1.35);
+  background-color: var(--connector-lines) !important;
+  border-color: var(--connector-lines) !important;
+}
+
+/* Neutral gray indicator when snapping or valid connection */
+.react-flow__handle-connecting,
+.react-flow__handle-valid {
+  opacity: 1 !important;
+  transform: scale(1.5) !important;
+  background-color: var(--connector-lines) !important;
+  border-color: var(--primary-text) !important;
+  box-shadow: 0 0 0 3px rgba(69, 69, 69, 0.25) !important;
+}
+
+/* Reconnection endpoint handles on selected connectors */
+.react-flow__edgeupdater {
+  fill: #FFFFFF !important;
+  stroke: var(--connector-lines) !important;
+  stroke-width: 1.5px !important;
+  r: 4.5px !important;
+  cursor: grab !important;
+  transition: r 0.15s ease, fill 0.15s ease;
+}
+
+.react-flow__edgeupdater:hover {
+  fill: var(--connector-lines) !important;
+  r: 6px !important;
+  cursor: grabbing !important;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--primary-text) !important;
+  stroke-width: 2px !important;
+}
+
+/* Selection rectangle: warm neutral, absolutely no blue */
+.react-flow__selection {
+  background: rgba(138, 129, 120, 0.08) !important;
+  border: 1px dashed var(--accent-color) !important;
+  border-radius: 4px;
+}
+
+/* Node selection outlines: clean neutral charcoal/accent, no blue */
+.react-flow__node.selected > div {
+  outline: 2px solid var(--accent-color) !important;
+  outline-offset: 1px;
+}
+
+/* Controls styling */
+.react-flow__controls {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid var(--borders) !important;
+  border-radius: 8px !important;
+  background: var(--toolbar-bg) !important;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: var(--toolbar-bg) !important;
+  border-bottom: 1px solid var(--borders) !important;
+  fill: var(--primary-text) !important;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--hover-state) !important;
+}
+
+.react-flow__controls-button svg {
+  fill: var(--primary-text) !important;
+}
+
+/* Minimap */
+.react-flow__minimap {
+  background-color: var(--toolbar-bg) !important;
+  border: 1px solid var(--borders) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(245, 245, 242, 0.7) !important;
+}
+
+.react-flow__minimap-node {
+  fill: #FFFFFF !important;
+  stroke: var(--borders) !important;
+  stroke-width: 1px !important;
+}
+
+/* Neutral focus rings and visible dark caret for inputs */
+input, textarea, [contenteditable] {
+  caret-color: #292929 !important;
+}
+
+input:focus, textarea:focus, [contenteditable]:focus {
+  outline: none;
+  box-shadow: 0 0 0 1.5px var(--accent-color);
+}
