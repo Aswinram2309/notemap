@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 import { useCanvasStore } from "@/stores/canvas-store";
-import { exportBoardToJson, exportAllDataBackup, importBoardFromJson } from "@/lib/export";
+import { exportBoardToJson, exportAllDataBackup, importDataFromJson, importBoardFromJson } from "@/lib/export";
 import { Workspace, Board } from "@/types/workspace";
 import { WorkspaceCreateModal } from "../common/WorkspaceCreateModal";
 import { WorkspaceRenameModal } from "../common/WorkspaceRenameModal";
@@ -57,6 +57,8 @@ export const TopBar: React.FC<TopBarProps> = ({
     activeBoard,
     renameBoard,
     loadBoardById,
+    fetchWorkspaces,
+    fetchBoards,
   } = useWorkspaceStore();
 
   const {
@@ -95,16 +97,40 @@ export const TopBar: React.FC<TopBarProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset input value so selecting the same file again triggers onChange
+    e.target.value = "";
+
     const reader = new FileReader();
     reader.onload = async () => {
       try {
         const result = reader.result as string;
-        const imported = await importBoardFromJson(result, activeWorkspaceId || undefined);
-        await loadBoardById(imported.boardId);
-        await setBoard(imported.boardId);
+        const res = await importDataFromJson(result, activeWorkspaceId || undefined);
+
+        if (res.type === "backup") {
+          await fetchWorkspaces();
+          if (res.workspaceId) {
+            await setActiveWorkspace(res.workspaceId);
+          }
+          if (res.boardId) {
+            await loadBoardById(res.boardId);
+            await setBoard(res.boardId);
+          }
+          alert(`Backup restored successfully!\n${res.workspaceCount || 0} workspaces, ${res.boardCount || 0} boards, ${res.nodeCount || 0} cards.`);
+        } else {
+          // Board import
+          if (res.workspaceId) {
+            await fetchBoards(res.workspaceId);
+          }
+          if (res.boardId) {
+            await loadBoardById(res.boardId);
+            await setBoard(res.boardId);
+          }
+          alert(`Board "${res.boardName || "Imported Board"}" imported successfully!\nAll notes, images, connectors, and drawings were restored.`);
+        }
+
         setShowExportMenu(false);
       } catch (err: any) {
-        alert(err.message || "Failed to import board");
+        alert(err.message || "Failed to import file");
       }
     };
     reader.readAsText(file);
@@ -167,11 +193,10 @@ export const TopBar: React.FC<TopBarProps> = ({
                     workspaces.map((ws) => (
                       <div
                         key={ws.id}
-                        className={`w-full px-3 py-1.5 text-xs flex items-center justify-between group transition-colors ${
-                          ws.id === activeWorkspaceId
+                        className={`w-full px-3 py-1.5 text-xs flex items-center justify-between group transition-colors ${ws.id === activeWorkspaceId
                             ? "font-semibold text-[#292929] bg-[#F5F5F2]"
                             : "text-[#555550] hover:bg-[#F0F0EB]"
-                        }`}
+                          }`}
                       >
                         <button
                           type="button"
@@ -313,11 +338,10 @@ export const TopBar: React.FC<TopBarProps> = ({
                     boards.map((b) => (
                       <div
                         key={b.id}
-                        className={`w-full px-3 py-1.5 text-xs flex items-center justify-between group transition-colors ${
-                          b.id === activeBoard?.id
+                        className={`w-full px-3 py-1.5 text-xs flex items-center justify-between group transition-colors ${b.id === activeBoard?.id
                             ? "font-semibold text-[#292929] bg-[#F5F5F2]"
                             : "text-[#555550] hover:bg-[#F0F0EB]"
-                        }`}
+                          }`}
                       >
                         <button
                           type="button"
@@ -503,89 +527,97 @@ export const TopBar: React.FC<TopBarProps> = ({
                 {activeBoard && (
                   <button
                     type="button"
-                    onClick={() => {
-                      exportBoardToJson(activeBoard.id);
-                      setShowExportMenu(false);
+                      onClick = { async() => {
+                      try {
+                  await exportBoardToJson(activeBoard.id);
+                setShowExportMenu(false);
+                      } catch (err: any) {
+                  alert(err.message || "Failed to export board");
+                      }
                     }}
-                    className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-[#F0F0EB] text-[#292929] cursor-pointer"
+                className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-[#F0F0EB] text-[#292929] cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5 text-[#777777]" />
-                    <span>Export Board (JSON)</span>
-                  </button>
-                )}
-
-                <label className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-[#F0F0EB] text-[#292929] cursor-pointer">
-                  <Upload className="w-3.5 h-3.5 text-[#777777]" />
-                  <span>Import Board (JSON)</span>
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportFile}
-                    className="hidden"
-                  />
-                </label>
-
-                <div className="h-px bg-[#E5E5E0] my-1" />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    exportAllDataBackup();
-                    setShowExportMenu(false);
-                  }}
-                  className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-[#F0F0EB] text-[#292929] cursor-pointer"
-                >
-                  <Database className="w-3.5 h-3.5 text-[#777777]" />
-                  <span>Backup All Data (IndexedDB)</span>
-                </button>
-
-                <div className="px-3 py-1.5 bg-[#FAF8F5] border-t border-[#E5E5E0] text-[10px] text-[#777777] leading-tight">
-                  Data is persisted locally in your browser via Dexie / IndexedDB.
-                </div>
-              </div>
+                <Download className="w-3.5 h-3.5 text-[#777777]" />
+                <span>Export Board (JSON)</span>
+              </button>
             )}
-          </div>
 
-          {/* Shortcuts / Help modal trigger */}
-          <button
-            type="button"
-            onClick={onOpenShortcuts}
-            title="Keyboard shortcuts & guide"
-            className="p-1.5 rounded border border-[#E5E5E0] bg-[#FFFFFF] hover:bg-[#F0F0EB] text-[#777777] hover:text-[#292929] transition-colors cursor-pointer"
-          >
-            <HelpCircle className="w-3.5 h-3.5" />
+            <label className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-[#F0F0EB] text-[#292929] cursor-pointer">
+              <Upload className="w-3.5 h-3.5 text-[#777777]" />
+              <span>Import Board / Backup (JSON)</span>
+              <input
+                type="file"
+                accept=".json,application/json"
+                onChange={handleImportFile}
+                className="hidden"
+              />
+            </label>
+
+            <div className="h-px bg-[#E5E5E0] my-1" />
+
+            <button
+              type="button"
+                onClick = { async() => {
+                    try {
+              await exportAllDataBackup();
+            setShowExportMenu(false);
+                    } catch (err: any) {
+              alert(err.message || "Failed to export backup");
+                    }
+                  }}
+            className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-[#F0F0EB] text-[#292929] cursor-pointer"
+                >
+            <Database className="w-3.5 h-3.5 text-[#777777]" />
+            <span>Backup All Data (JSON)</span>
           </button>
+
+          <div className="px-3 py-1.5 bg-[#FAF8F5] border-t border-[#E5E5E0] text-[10px] text-[#777777] leading-tight">
+            Data is persisted locally in your browser via Dexie / IndexedDB.
+          </div>
         </div>
-      </header>
+            )}
+      </div>
 
-      {/* Workspace & Board Modals */}
-      <WorkspaceCreateModal
-        isOpen={isCreateWsOpen}
-        onClose={() => setIsCreateWsOpen(false)}
+      {/* Shortcuts / Help modal trigger */}
+      <button
+        type="button"
+        onClick={onOpenShortcuts}
+        title="Keyboard shortcuts & guide"
+        className="p-1.5 rounded border border-[#E5E5E0] bg-[#FFFFFF] hover:bg-[#F0F0EB] text-[#777777] hover:text-[#292929] transition-colors cursor-pointer"
+      >
+        <HelpCircle className="w-3.5 h-3.5" />
+      </button>
+    </div >
+      </header >
+
+  {/* Workspace & Board Modals */ }
+  < WorkspaceCreateModal
+isOpen = { isCreateWsOpen }
+onClose = {() => setIsCreateWsOpen(false)}
       />
 
-      <WorkspaceRenameModal
-        isOpen={!!renamingWs}
-        workspace={renamingWs}
-        onClose={() => setRenamingWs(null)}
+  < WorkspaceRenameModal
+isOpen = {!!renamingWs}
+workspace = { renamingWs }
+onClose = {() => setRenamingWs(null)}
       />
 
-      <WorkspaceDeleteConfirmModal
-        isOpen={!!deletingWs}
-        workspace={deletingWs}
-        onClose={() => setDeletingWs(null)}
+  < WorkspaceDeleteConfirmModal
+isOpen = {!!deletingWs}
+workspace = { deletingWs }
+onClose = {() => setDeletingWs(null)}
       />
 
-      <BoardMoveModal
-        isOpen={!!movingBoard}
-        board={movingBoard}
-        onClose={() => setMovingBoard(null)}
+  < BoardMoveModal
+isOpen = {!!movingBoard}
+board = { movingBoard }
+onClose = {() => setMovingBoard(null)}
       />
 
-      <BoardDeleteConfirmModal
-        isOpen={!!deletingBoard}
-        board={deletingBoard}
-        onClose={() => setDeletingBoard(null)}
+  < BoardDeleteConfirmModal
+isOpen = {!!deletingBoard}
+board = { deletingBoard }
+onClose = {() => setDeletingBoard(null)}
       />
     </>
   );

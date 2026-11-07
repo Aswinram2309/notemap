@@ -150,13 +150,46 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     async (event: React.DragEvent) => {
       event.preventDefault();
 
-      const nodeType = event.dataTransfer.getData("application/notemap-node-type") as CanvasNodeType;
-      if (!nodeType) return;
-
       const position = screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
       });
+
+      // 1. Direct file drop from OS (Images, PDFs, documents)
+      const files = event.dataTransfer.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+        if (file.type.startsWith("image/")) {
+          const reader = new FileReader();
+          reader.onload = async () => {
+            const dataUrl = reader.result as string;
+            await addNode("image", position, {
+              url: dataUrl,
+              caption: file.name,
+            });
+          };
+          reader.readAsDataURL(file);
+          return;
+        } else {
+          const reader = new FileReader();
+          reader.onload = async () => {
+            const dataUrl = reader.result as string;
+            await addNode("file", position, {
+              fileName: file.name,
+              fileType: file.type || "application/octet-stream",
+              fileSize: file.size,
+              fileData: dataUrl,
+              description: file.name,
+            });
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
+      }
+
+      // 2. Drag & drop tool item from left toolbar
+      const nodeType = event.dataTransfer.getData("application/notemap-node-type") as CanvasNodeType;
+      if (!nodeType) return;
 
       await addNode(nodeType, position);
     },
@@ -629,10 +662,10 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
     activeTool === "line"
       ? "canvas-tool-line"
       : activeTool === "draw"
-      ? isEraserActive
-        ? "canvas-tool-eraser"
-        : "canvas-tool-draw"
-      : "canvas-tool-select";
+        ? isEraserActive
+          ? "canvas-tool-eraser"
+          : "canvas-tool-draw"
+        : "canvas-tool-select";
 
   return (
     <div
@@ -710,9 +743,8 @@ export const InfiniteCanvas: React.FC<InfiniteCanvasProps> = ({
         <ViewportPortal>
           {/* Persisted Freehand Drawing Paths */}
           <svg
-            className={`absolute inset-0 w-full h-full overflow-visible ${
-              activeTool === "draw" && isEraserActive ? "pointer-events-auto" : "pointer-events-none"
-            }`}
+            className={`absolute inset-0 w-full h-full overflow-visible ${activeTool === "draw" && isEraserActive ? "pointer-events-auto" : "pointer-events-none"
+              }`}
             style={{ zIndex: 1 }}
           >
             {drawings.map((d) => (

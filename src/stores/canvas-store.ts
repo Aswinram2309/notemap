@@ -424,8 +424,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
       case "image":
         initialData = {
-          url: customData?.url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80",
-          caption: "Visual Reference",
+          url: customData?.url || "",
+          caption: customData?.caption || "Visual Reference",
           ...customData,
         } as ImageNodeData;
         defaultWidth = 280;
