@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { TopBar } from "@/components/layout/TopBar";
 import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
@@ -35,9 +35,12 @@ function WorkspaceContent() {
     fetchWorkspaces();
   }, [fetchWorkspaces]);
 
-  // Restore last accessed board on initial load or reload
+  const hasInitializedBoardRef = useRef(false);
+
+  // Restore last accessed board on initial load ONLY
   useEffect(() => {
-    if (boards.length > 0) {
+    if (!hasInitializedBoardRef.current && boards.length > 0) {
+      hasInitializedBoardRef.current = true;
       const savedLastId =
         typeof window !== "undefined"
           ? localStorage.getItem("notemap_active_board")

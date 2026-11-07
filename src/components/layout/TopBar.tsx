@@ -106,29 +106,40 @@ export const TopBar: React.FC<TopBarProps> = ({
         const result = reader.result as string;
         const res = await importDataFromJson(result, activeWorkspaceId || undefined);
 
-        if (res.type === "backup") {
-          await fetchWorkspaces();
-          if (res.workspaceId) {
-            await setActiveWorkspace(res.workspaceId);
+        // 1. Immediately refresh workspaces so the workspace store is up to date
+        await fetchWorkspaces();
+
+        // 2. Select target workspace and refresh its boards
+        const targetWsId = res.workspaceId || activeWorkspaceId;
+        if (targetWsId) {
+          useWorkspaceStore.setState({ activeWorkspaceId: targetWsId });
+          await fetchBoards(targetWsId);
+        }
+
+        // 3. Immediately switch activeBoard and load the board nodes/images/drawings onto canvas
+        const targetBoardId = res.boardId;
+        if (targetBoardId) {
+          if (typeof window !== "undefined") {
+            localStorage.setItem("notemap_active_board", targetBoardId);
           }
-          if (res.boardId) {
-            await loadBoardById(res.boardId);
-            await setBoard(res.boardId);
-          }
-          alert(`Backup restored successfully!\n${res.workspaceCount || 0} workspaces, ${res.boardCount || 0} boards, ${res.nodeCount || 0} cards.`);
-        } else {
-          // Board import
-          if (res.workspaceId) {
-            await fetchBoards(res.workspaceId);
-          }
-          if (res.boardId) {
-            await loadBoardById(res.boardId);
-            await setBoard(res.boardId);
-          }
-          alert(`Board "${res.boardName || "Imported Board"}" imported successfully!\nAll notes, images, connectors, and drawings were restored.`);
+          await loadBoardById(targetBoardId);
+          await setBoard(targetBoardId);
+
+          // Smoothly center the canvas on the imported content
+          setTimeout(() => {
+            try {
+              fitView({ padding: 0.2, duration: 300 });
+            } catch {}
+          }, 150);
         }
 
         setShowExportMenu(false);
+
+        if (res.type === "backup") {
+          alert(`Backup restored successfully!\n${res.workspaceCount || 0} workspaces, ${res.boardCount || 0} boards, ${res.nodeCount || 0} cards.`);
+        } else {
+          alert(`Board "${res.boardName || "Imported Board"}" imported successfully!\nAll notes, images, connectors, and drawings were restored.`);
+        }
       } catch (err: any) {
         alert(err.message || "Failed to import file");
       }
